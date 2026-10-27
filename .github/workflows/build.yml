@@ -66,9 +66,9 @@ jobs:
           echo '    public int getHeight() { return 320; }' >> stubs/javax/microedition/lcdui/game/GameCanvas.java
           echo '}' >> stubs/javax/microedition/lcdui/game/GameCanvas.java
 
-      - name: Compilar y empaquetar con formato estricto
+      - name: Compilar y generar JAD y JAR sincronizados
         run: |
-          # Manifiesto con sintaxis limpia y sin espacios conflictivos
+          # Manifiesto interno del JAR
           printf "Manifest-Version: 1.0\r\n" > manifest.mf
           printf "MIDlet-Name: DarkSouls2D\r\n" >> manifest.mf
           printf "MIDlet-Version: 1.0\r\n" >> manifest.mf
@@ -83,9 +83,24 @@ jobs:
           cd build/classes
           jar cvfm ../DarkSouls2D.jar ../../manifest.mf DarkSoulsGame*.class
           cd ../..
+          
+          # Medir tamaño exacto para el archivo JAD
+          JAR_SIZE=$(wc -c < build/DarkSouls2D.jar)
+          
+          # Generar JAD con formato CRLF estricto
+          printf "MIDlet-Name: DarkSouls2D\r\n" > build/DarkSouls2D.jad
+          printf "MIDlet-Version: 1.0\r\n" >> build/DarkSouls2D.jad
+          printf "MIDlet-Vendor: Anonimo\r\n" >> build/DarkSouls2D.jad
+          printf "MIDlet-1: DarkSouls2D,,DarkSoulsGame\r\n" >> build/DarkSouls2D.jad
+          printf "MicroEdition-Configuration: CLDC-1.1\r\n" >> build/DarkSouls2D.jad
+          printf "MicroEdition-Profile: MIDP-2.0\r\n" >> build/DarkSouls2D.jad
+          printf "MIDlet-Jar-Size: %d\r\n" "$JAR_SIZE" >> build/DarkSouls2D.jad
+          printf "MIDlet-Jar-URL: DarkSouls2D.jar\r\n" >> build/DarkSouls2D.jad
 
-      - name: Subir artefacto (.jar)
+      - name: Subir artefactos (.jar y .jad)
         uses: actions/upload-artifact@v4
         with:
-          name: dark-souls-jar
-          path: build/DarkSouls2D.jar
+          name: dark-souls-package
+          path: |
+            build/DarkSouls2D.jar
+            build/DarkSouls2D.jad
