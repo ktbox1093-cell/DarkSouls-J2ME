@@ -17,38 +17,64 @@ jobs:
           distribution: 'temurin'
           java-version: '8'
 
-      - name: Descargar Toolkit J2ME de forma robusta
+      - name: Crear Stubs de J2ME locales (Sin descargas)
         run: |
-          mkdir -p wtk/wtklib
-          
-          # Descargar un repositorio completo que contenga el WTK y las librerías necesarias
-          curl -sL https://github.com/gtalent/wtk-2.5.2-linux/archive/refs/heads/master.zip -o wtk_repo.zip || \
-          curl -sL https://github.com/notnoop/wtk-2.5.2/archive/refs/heads/master.zip -o wtk_repo.zip
-          
-          # Descomprimir el repositorio descargado
-          if [ -f "wtk_repo.zip" ]; then
-            unzip -q wtk_repo.zip
-            find . -name "kenv.zip" -exec cp {} wtk/wtklib/ \;
-          fi
-          
-          # Verificación estricta del tamaño del archivo kenv.zip
-          if [ -f "wtk/wtklib/kenv.zip" ]; then
-            FILESIZE=$(wc -c <"wtk/wtklib/kenv.zip")
-            echo "Tamaño de kenv.zip: $FILESIZE bytes"
-            if [ "$FILESIZE" -lt 10000 ]; then
-              echo "Error: El archivo kenv.zip extraído es demasiado pequeño o inválido."
-              exit 1
-            fi
-          else
-            echo "Error crítico: No se pudo localizar kenv.zip."
-            exit 1
-          fi
-          echo "¡Librería kenv.zip lista y verificada!"
+          mkdir -p stubs/javax/microedition/midlet
+          mkdir -p stubs/javax/microedition/lcdui/game
+
+          # 1. MIDlet.java
+          echo 'package javax.microedition.midlet;' > stubs/javax/microedition/midlet/MIDlet.java
+          echo 'public abstract class MIDlet {' >> stubs/javax/microedition/midlet/MIDlet.java
+          echo '    public MIDlet() {}' >> stubs/javax/microedition/midlet/MIDlet.java
+          echo '    public abstract void startApp();' >> stubs/javax/microedition/midlet/MIDlet.java
+          echo '    public abstract void pauseApp();' >> stubs/javax/microedition/midlet/MIDlet.java
+          echo '    public abstract void destroyApp(boolean unconditional);' >> stubs/javax/microedition/midlet/MIDlet.java
+          echo '    public void notifyDestroyed() {}' >> stubs/javax/microedition/midlet/MIDlet.java
+          echo '}' >> stubs/javax/microedition/midlet/MIDlet.java
+
+          # 2. Display.java y Displayable.java
+          echo 'package javax.microedition.lcdui;' > stubs/javax/microedition/lcdui/Display.java
+          echo 'import javax.microedition.midlet.MIDlet;' >> stubs/javax/microedition/lcdui/Display.java
+          echo 'public class Display {' >> stubs/javax/microedition/lcdui/Display.java
+          echo '    public static Display getDisplay(MIDlet m) { return null; }' >> stubs/javax/microedition/lcdui/Display.java
+          echo '    public void setCurrent(Displayable d) {}' >> stubs/javax/microedition/lcdui/Display.java
+          echo '}' >> stubs/javax/microedition/lcdui/Display.java
+
+          echo 'package javax.microedition.lcdui;' > stubs/javax/microedition/lcdui/Displayable.java
+          echo 'public abstract class Displayable {}' >> stubs/javax/microedition/lcdui/Displayable.java
+
+          # 3. Graphics.java
+          echo 'package javax.microedition.lcdui;' > stubs/javax/microedition/lcdui/Graphics.java
+          echo 'public class Graphics {' >> stubs/javax/microedition/lcdui/Graphics.java
+          echo '    public static int TOP = 0, LEFT = 0;' >> stubs/javax/microedition/lcdui/Graphics.java
+          echo '    public void setColor(int rgb) {}' >> stubs/javax/microedition/lcdui/Graphics.java
+          echo '    public void fillRect(int x, int y, int w, int h) {}' >> stubs/javax/microedition/lcdui/Graphics.java
+          echo '    public void drawRect(int x, int y, int w, int h) {}' >> stubs/javax/microedition/lcdui/Graphics.java
+          echo '    public void fillArc(int x, int y, int w, int h, int sa, int aa) {}' >> stubs/javax/microedition/lcdui/Graphics.java
+          echo '    public void drawString(String s, int x, int y, int a) {}' >> stubs/javax/microedition/lcdui/Graphics.java
+          echo '}' >> stubs/javax/microedition/lcdui/Graphics.java
+
+          # 4. GameCanvas.java
+          echo 'package javax.microedition.lcdui.game;' > stubs/javax/microedition/lcdui/game/GameCanvas.java
+          echo 'import javax.microedition.lcdui.Displayable;' >> stubs/javax/microedition/lcdui/game/GameCanvas.java
+          echo 'import javax.microedition.lcdui.Graphics;' >> stubs/javax/microedition/lcdui/game/GameCanvas.java
+          echo 'public abstract class GameCanvas extends Displayable {' >> stubs/javax/microedition/lcdui/game/GameCanvas.java
+          echo '    public static int UP_PRESSED = 1, DOWN_PRESSED = 2, LEFT_PRESSED = 4, RIGHT_PRESSED = 8, FIRE = 16;' >> stubs/javax/microedition/lcdui/game/GameCanvas.java
+          echo '    public static int KEY_NUM5 = 53, KEY_NUM0 = 48, KEY_POUND = 35;' >> stubs/javax/microedition/lcdui/game/GameCanvas.java
+          echo '    public GameCanvas(boolean b) {}' >> stubs/javax/microedition/lcdui/game/GameCanvas.java
+          echo '    protected Graphics getGraphics() { return null; }' >> stubs/javax/microedition/lcdui/game/GameCanvas.java
+          echo '    protected void flushGraphics() {}' >> stubs/javax/microedition/lcdui/game/GameCanvas.java
+          echo '    protected int getKeyStates() { return 0; }' >> stubs/javax/microedition/lcdui/game/GameCanvas.java
+          echo '    protected int getGameAction(int k) { return 0; }' >> stubs/javax/microedition/lcdui/game/GameCanvas.java
+          echo '    public int getWidth() { return 240; }' >> stubs/javax/microedition/lcdui/game/GameCanvas.java
+          echo '    public int getHeight() { return 320; }' >> stubs/javax/microedition/lcdui/game/GameCanvas.java
+          echo '}' >> stubs/javax/microedition/lcdui/game/GameCanvas.java
 
       - name: Compilar y empaquetar MIDlet (.jar)
         run: |
           mkdir -p build/classes
-          javac -bootclasspath wtk/wtklib/kenv.zip -d build/classes DarkSoulsGame.java
+          # Compilar stubs y el juego juntos
+          javac -source 1.8 -target 1.8 -d build/classes $(find stubs -name "*.java") DarkSoulsGame.java
           
           cd build/classes
           jar cvfm ../DarkSouls2D.jar ../../manifest.mf *
