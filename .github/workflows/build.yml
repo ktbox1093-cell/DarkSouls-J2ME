@@ -17,12 +17,11 @@ jobs:
           distribution: 'temurin'
           java-version: '8'
 
-      - name: Crear Stubs de J2ME locales (Sin descargas)
+      - name: Crear Stubs de J2ME locales
         run: |
           mkdir -p stubs/javax/microedition/midlet
           mkdir -p stubs/javax/microedition/lcdui/game
 
-          # 1. MIDlet.java
           echo 'package javax.microedition.midlet;' > stubs/javax/microedition/midlet/MIDlet.java
           echo 'public abstract class MIDlet {' >> stubs/javax/microedition/midlet/MIDlet.java
           echo '    public MIDlet() {}' >> stubs/javax/microedition/midlet/MIDlet.java
@@ -32,7 +31,6 @@ jobs:
           echo '    public void notifyDestroyed() {}' >> stubs/javax/microedition/midlet/MIDlet.java
           echo '}' >> stubs/javax/microedition/midlet/MIDlet.java
 
-          # 2. Display.java y Displayable.java
           echo 'package javax.microedition.lcdui;' > stubs/javax/microedition/lcdui/Display.java
           echo 'import javax.microedition.midlet.MIDlet;' >> stubs/javax/microedition/lcdui/Display.java
           echo 'public class Display {' >> stubs/javax/microedition/lcdui/Display.java
@@ -43,7 +41,6 @@ jobs:
           echo 'package javax.microedition.lcdui;' > stubs/javax/microedition/lcdui/Displayable.java
           echo 'public abstract class Displayable {}' >> stubs/javax/microedition/lcdui/Displayable.java
 
-          # 3. Graphics.java
           echo 'package javax.microedition.lcdui;' > stubs/javax/microedition/lcdui/Graphics.java
           echo 'public class Graphics {' >> stubs/javax/microedition/lcdui/Graphics.java
           echo '    public static int TOP = 0, LEFT = 0;' >> stubs/javax/microedition/lcdui/Graphics.java
@@ -54,7 +51,6 @@ jobs:
           echo '    public void drawString(String s, int x, int y, int a) {}' >> stubs/javax/microedition/lcdui/Graphics.java
           echo '}' >> stubs/javax/microedition/lcdui/Graphics.java
 
-          # 4. GameCanvas.java
           echo 'package javax.microedition.lcdui.game;' > stubs/javax/microedition/lcdui/game/GameCanvas.java
           echo 'import javax.microedition.lcdui.Displayable;' >> stubs/javax/microedition/lcdui/game/GameCanvas.java
           echo 'import javax.microedition.lcdui.Graphics;' >> stubs/javax/microedition/lcdui/game/GameCanvas.java
@@ -70,18 +66,30 @@ jobs:
           echo '    public int getHeight() { return 320; }' >> stubs/javax/microedition/lcdui/game/GameCanvas.java
           echo '}' >> stubs/javax/microedition/lcdui/game/GameCanvas.java
 
-      - name: Compilar y empaquetar MIDlet (.jar)
+      - name: Compilar, empaquetar y generar JAD
         run: |
           mkdir -p build/classes
-          # Compilar stubs y el juego juntos
           javac -source 1.8 -target 1.8 -d build/classes $(find stubs -name "*.java") DarkSoulsGame.java
           
           cd build/classes
           jar cvfm ../DarkSouls2D.jar ../../manifest.mf *
           cd ../..
+          
+          # Calcular tamaño exacto y crear archivo JAD para Symbian
+          JAR_SIZE=$(wc -c < build/DarkSouls2D.jar)
+          echo "MIDlet-Name: DarkSouls2D" > build/DarkSouls2D.jad
+          echo "MIDlet-Version: 1.0" >> build/DarkSouls2D.jad
+          echo "MIDlet-Vendor: Anonimo" >> build/DarkSouls2D.jad
+          echo "MIDlet-1: Dark Souls 2D, , DarkSoulsGame" >> build/DarkSouls2D.jad
+          echo "MicroEdition-Configuration: CLDC-1.1" >> build/DarkSouls2D.jad
+          echo "MicroEdition-Profile: MIDP-2.0" >> build/DarkSouls2D.jad
+          echo "MIDlet-Jar-Size: $JAR_SIZE" >> build/DarkSouls2D.jad
+          echo "MIDlet-Jar-URL: DarkSouls2D.jar" >> build/DarkSouls2D.jad
 
-      - name: Subir artefacto compilado
+      - name: Subir artefactos compilados (JAR y JAD)
         uses: actions/upload-artifact@v4
         with:
-          name: dark-souls-jar
-          path: build/DarkSouls2D.jar
+          name: dark-souls-files
+          path: |
+            build/DarkSouls2D.jar
+            build/DarkSouls2D.jad
