@@ -1,1 +1,48 @@
 
+name: Compilar Dark Souls Java J2ME
+
+on:
+  push:
+    branches: [ main, master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Copiar repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Java JDK 8
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '8'
+
+      - name: Descargar Toolkit J2ME de forma estable
+        run: |
+          mkdir -p wtk/wtklib
+          curl -sL https://github.com/shunjikonishi/wtk-2.5.2/archive/refs/heads/master.zip -o wtk.zip
+          unzip -q wtk.zip
+          find . -name "kenv.zip" -exec cp {} wtk/wtklib/ \;
+          
+          if [ -f "wtk/wtklib/kenv.zip" ]; then
+            echo "¡Librería kenv.zip lista!"
+          else
+            echo "Error: No se encontró kenv.zip"
+            exit 1
+          fi
+
+      - name: Compilar y empaquetar MIDlet (.jar)
+        run: |
+          mkdir -p build/classes
+          javac -bootclasspath wtk/wtklib/kenv.zip -d build/classes DarkSoulsGame.java
+          
+          cd build/classes
+          jar cvfm ../DarkSouls2D.jar ../../manifest.mf *
+          cd ../..
+
+      - name: Subir artefacto compilado
+        uses: actions/upload-artifact@v4
+        with:
+          name: dark-souls-jar
+          path: build/DarkSouls2D.jar
