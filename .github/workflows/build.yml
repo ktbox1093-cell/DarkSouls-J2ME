@@ -1,16 +1,91 @@
-import javax.microedition.midlet.MIDlet;
-import javax.microedition.lcdui.Display;
+name: Compilar Dark Souls Java J2ME
 
-public class DarkSoulsGame extends MIDlet {
-    // Tu juego debe heredar de MIDlet, no de GameCanvas directamente
-    
-    public void startApp() {
-        // Aquí inicias tu canvas o pantalla del juego
-    }
-    
-    public void pauseApp() {}
-    
-    public void destroyApp(boolean unconditional) {
-        notifyDestroyed();
-    }
-}
+on:
+  push:
+    branches: [ main, master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Copiar repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Java JDK 8
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '8'
+
+      - name: Crear Stubs de J2ME locales
+        run: |
+          mkdir -p stubs/javax/microedition/midlet
+          mkdir -p stubs/javax/microedition/lcdui/game
+
+          echo 'package javax.microedition.midlet;' > stubs/javax/microedition/midlet/MIDlet.java
+          echo 'public abstract class MIDlet {' >> stubs/javax/microedition/midlet/MIDlet.java
+          echo '    public MIDlet() {}' >> stubs/javax/microedition/midlet/MIDlet.java
+          echo '    public abstract void startApp();' >> stubs/javax/microedition/midlet/MIDlet.java
+          echo '    public abstract void pauseApp();' >> stubs/javax/microedition/midlet/MIDlet.java
+          echo '    public abstract void destroyApp(boolean unconditional);' >> stubs/javax/microedition/midlet/MIDlet.java
+          echo '    public void notifyDestroyed() {}' >> stubs/javax/microedition/midlet/MIDlet.java
+          echo '}' >> stubs/javax/microedition/midlet/MIDlet.java
+
+          echo 'package javax.microedition.lcdui;' > stubs/javax/microedition/lcdui/Display.java
+          echo 'import javax.microedition.midlet.MIDlet;' >> stubs/javax/microedition/lcdui/Display.java
+          echo 'public class Display {' >> stubs/javax/microedition/lcdui/Display.java
+          echo '    public static Display getDisplay(MIDlet m) { return null; }' >> stubs/javax/microedition/lcdui/Display.java
+          echo '    public void setCurrent(Displayable d) {}' >> stubs/javax/microedition/lcdui/Display.java
+          echo '}' >> stubs/javax/microedition/lcdui/Display.java
+
+          echo 'package javax.microedition.lcdui;' > stubs/javax/microedition/lcdui/Displayable.java
+          echo 'public abstract class Displayable {}' >> stubs/javax/microedition/lcdui/Displayable.java
+
+          echo 'package javax.microedition.lcdui;' > stubs/javax/microedition/lcdui/Graphics.java
+          echo 'public class Graphics {' >> stubs/javax/microedition/lcdui/Graphics.java
+          echo '    public static int TOP = 0, LEFT = 0;' >> stubs/javax/microedition/lcdui/Graphics.java
+          echo '    public void setColor(int rgb) {}' >> stubs/javax/microedition/lcdui/Graphics.java
+          echo '    public void fillRect(int x, int y, int w, int h) {}' >> stubs/javax/microedition/lcdui/Graphics.java
+          echo '    public void drawRect(int x, int y, int w, int h) {}' >> stubs/javax/microedition/lcdui/Graphics.java
+          echo '    public void fillArc(int x, int y, int w, int h, int sa, int aa) {}' >> stubs/javax/microedition/lcdui/Graphics.java
+          echo '    public void drawString(String s, int x, int y, int a) {}' >> stubs/javax/microedition/lcdui/Graphics.java
+          echo '}' >> stubs/javax/microedition/lcdui/Graphics.java
+
+          echo 'package javax.microedition.lcdui.game;' > stubs/javax/microedition/lcdui/game/GameCanvas.java
+          echo 'import javax.microedition.lcdui.Displayable;' >> stubs/javax/microedition/lcdui/game/GameCanvas.java
+          echo 'import javax.microedition.lcdui.Graphics;' >> stubs/javax/microedition/lcdui/game/GameCanvas.java
+          echo 'public abstract class GameCanvas extends Displayable {' >> stubs/javax/microedition/lcdui/game/GameCanvas.java
+          echo '    public static int UP_PRESSED = 1, DOWN_PRESSED = 2, LEFT_PRESSED = 4, RIGHT_PRESSED = 8, FIRE = 16;' >> stubs/javax/microedition/lcdui/game/GameCanvas.java
+          echo '    public static int KEY_NUM5 = 53, KEY_NUM0 = 48, KEY_POUND = 35;' >> stubs/javax/microedition/lcdui/game/GameCanvas.java
+          echo '    public GameCanvas(boolean b) {}' >> stubs/javax/microedition/lcdui/game/GameCanvas.java
+          echo '    protected Graphics getGraphics() { return null; }' >> stubs/javax/microedition/lcdui/game/GameCanvas.java
+          echo '    protected void flushGraphics() {}' >> stubs/javax/microedition/lcdui/game/GameCanvas.java
+          echo '    protected int getKeyStates() { return 0; }' >> stubs/javax/microedition/lcdui/game/GameCanvas.java
+          echo '    protected int getGameAction(int k) { return 0; }' >> stubs/javax/microedition/lcdui/game/GameCanvas.java
+          echo '    public int getWidth() { return 240; }' >> stubs/javax/microedition/lcdui/game/GameCanvas.java
+          echo '    public int getHeight() { return 320; }' >> stubs/javax/microedition/lcdui/game/GameCanvas.java
+          echo '}' >> stubs/javax/microedition/lcdui/game/GameCanvas.java
+
+      - name: Compilar y empaquetar compatible con CLDC-1.1
+        run: |
+          printf "Manifest-Version: 1.0\r\n" > manifest.mf
+          printf "MIDlet-Name: DarkSouls2D\r\n" >> manifest.mf
+          printf "MIDlet-Version: 1.0\r\n" >> manifest.mf
+          printf "MIDlet-Vendor: Anonimo\r\n" >> manifest.mf
+          printf "MIDlet-1: Dark Souls 2D, , DarkSoulsGame\r\n" >> manifest.mf
+          printf "MicroEdition-Configuration: CLDC-1.1\r\n" >> manifest.mf
+          printf "MicroEdition-Profile: MIDP-2.0\r\n\r\n" >> manifest.mf
+
+          mkdir -p build/classes
+          # Compilar estricto para Java 1.3 / CLDC-1.1
+          javac -source 1.3 -target 1.3 -d build/classes $(find stubs -name "*.java") DarkSoulsGame.java
+          
+          cd build/classes
+          jar cvfm ../DarkSouls2D.jar ../../manifest.mf DarkSoulsGame*.class
+          cd ../..
+
+      - name: Subir artefacto (.jar)
+        uses: actions/upload-artifact@v4
+        with:
+          name: dark-souls-jar
+          path: build/DarkSouls2D.jar
