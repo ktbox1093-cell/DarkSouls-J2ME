@@ -66,7 +66,7 @@ jobs:
           echo '    public int getHeight() { return 320; }' >> stubs/javax/microedition/lcdui/game/GameCanvas.java
           echo '}' >> stubs/javax/microedition/lcdui/game/GameCanvas.java
 
-      - name: Compilar, empaquetar y generar JAD
+      - name: Compilar, empaquetar y generar JAD optimizado para Symbian
         run: |
           mkdir -p build/classes
           javac -source 1.8 -target 1.8 -d build/classes $(find stubs -name "*.java") DarkSoulsGame.java
@@ -75,18 +75,19 @@ jobs:
           jar cvfm ../DarkSouls2D.jar ../../manifest.mf *
           cd ../..
           
-          # Calcular tamaño exacto y crear archivo JAD para Symbian
           JAR_SIZE=$(wc -c < build/DarkSouls2D.jar)
-          echo "MIDlet-Name: DarkSouls2D" > build/DarkSouls2D.jad
-          echo "MIDlet-Version: 1.0" >> build/DarkSouls2D.jad
-          echo "MIDlet-Vendor: Anonimo" >> build/DarkSouls2D.jad
-          echo "MIDlet-1: Dark Souls 2D, , DarkSoulsGame" >> build/DarkSouls2D.jad
-          echo "MicroEdition-Configuration: CLDC-1.1" >> build/DarkSouls2D.jad
-          echo "MicroEdition-Profile: MIDP-2.0" >> build/DarkSouls2D.jad
-          echo "MIDlet-Jar-Size: $JAR_SIZE" >> build/DarkSouls2D.jad
-          echo "MIDlet-Jar-URL: DarkSouls2D.jar" >> build/DarkSouls2D.jad
+          
+          # Generar archivo JAD con codificación y saltos de línea estrictos para Symbian (CRLF)
+          printf "MIDlet-Name: DarkSouls2D\r\n" > build/DarkSouls2D.jad
+          printf "MIDlet-Version: 1.0.0\r\n" >> build/DarkSouls2D.jad
+          printf "MIDlet-Vendor: DarkSoulsDev\r\n" >> build/DarkSouls2D.jad
+          printf "MIDlet-1: Dark Souls 2D, , DarkSoulsGame\r\n" >> build/DarkSouls2D.jad
+          printf "MicroEdition-Configuration: CLDC-1.1\r\n" >> build/DarkSouls2D.jad
+          printf "MicroEdition-Profile: MIDP-2.0\r\n" >> build/DarkSouls2D.jad
+          printf "MIDlet-Jar-Size: %d\r\n" "$JAR_SIZE" >> build/DarkSouls2D.jad
+          printf "MIDlet-Jar-URL: DarkSouls2D.jar\r\n" >> build/DarkSouls2D.jad
 
-      - name: Subir artefactos compilados (JAR y JAD)
+      - name: Subir artefactos compilados
         uses: actions/upload-artifact@v4
         with:
           name: dark-souls-files
