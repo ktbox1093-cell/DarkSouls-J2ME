@@ -1,4 +1,3 @@
-
 name: Compilar Dark Souls Java J2ME
 
 on:
@@ -21,15 +20,19 @@ jobs:
       - name: Descargar Toolkit J2ME de forma estable
         run: |
           mkdir -p wtk/wtklib
-          curl -sL https://github.com/shunjikonishi/wtk-2.5.2/archive/refs/heads/master.zip -o wtk.zip
-          unzip -q wtk.zip
-          find . -name "kenv.zip" -exec cp {} wtk/wtklib/ \;
           
-          if [ -f "wtk/wtklib/kenv.zip" ]; then
-            echo "¡Librería kenv.zip lista!"
-          else
-            echo "Error: No se encontró kenv.zip"
+          # Descarga directa apuntando a la rama main y master de repositorios estables
+          curl -sL https://raw.githubusercontent.com/notnoop/wtk-2.5.2/main/wtklib/kenv.zip -o wtk/wtklib/kenv.zip || \
+          curl -sL https://raw.githubusercontent.com/notnoop/wtk-2.5.2/master/wtklib/kenv.zip -o wtk/wtklib/kenv.zip || \
+          curl -sL https://raw.githubusercontent.com/shunjikonishi/wtk-2.5.2/main/wtklib/kenv.zip -o wtk/wtklib/kenv.zip
+          
+          # Verificar que el archivo pese más de 10 KB (evita páginas de error HTML de 404)
+          FILESIZE=$(wc -c <"wtk/wtklib/kenv.zip")
+          if [ "$FILESIZE" -lt 10000 ]; then
+            echo "Error: El archivo descargado está corrupto o es una página de error (Tamaño: $FILESIZE bytes)."
             exit 1
+          else
+            echo "¡kenv.zip descargado correctamente ($FILESIZE bytes)!"
           fi
 
       - name: Compilar y empaquetar MIDlet (.jar)
