@@ -66,8 +66,17 @@ jobs:
           echo '    public int getHeight() { return 320; }' >> stubs/javax/microedition/lcdui/game/GameCanvas.java
           echo '}' >> stubs/javax/microedition/lcdui/game/GameCanvas.java
 
-      - name: Compilar, empaquetar y generar JAD optimizado para Symbian
+      - name: Generar Manifiesto y Compilar
         run: |
+          # Crear manifest.mf con formato estricto CRLF
+          printf "Manifest-Version: 1.0\r\n" > manifest.mf
+          printf "MIDlet-Name: DarkSouls2D\r\n" >> manifest.mf
+          printf "MIDlet-Version: 1.0.0\r\n" >> manifest.mf
+          printf "MIDlet-Vendor: DarkSoulsDev\r\n" >> manifest.mf
+          printf "MIDlet-1: Dark Souls 2D, , DarkSoulsGame\r\n" >> manifest.mf
+          printf "MicroEdition-Configuration: CLDC-1.1\r\n" >> manifest.mf
+          printf "MicroEdition-Profile: MIDP-2.0\r\n\r\n" >> manifest.mf
+
           mkdir -p build/classes
           javac -source 1.8 -target 1.8 -d build/classes $(find stubs -name "*.java") DarkSoulsGame.java
           
@@ -77,7 +86,7 @@ jobs:
           
           JAR_SIZE=$(wc -c < build/DarkSouls2D.jar)
           
-          # Generar archivo JAD con codificación y saltos de línea estrictos para Symbian (CRLF)
+          # Crear archivo JAD sincronizado exactamente con el manifiesto
           printf "MIDlet-Name: DarkSouls2D\r\n" > build/DarkSouls2D.jad
           printf "MIDlet-Version: 1.0.0\r\n" >> build/DarkSouls2D.jad
           printf "MIDlet-Vendor: DarkSoulsDev\r\n" >> build/DarkSouls2D.jad
