@@ -17,23 +17,33 @@ jobs:
           distribution: 'temurin'
           java-version: '8'
 
-      - name: Descargar Toolkit J2ME de forma estable
+      - name: Descargar Toolkit J2ME de forma robusta
         run: |
           mkdir -p wtk/wtklib
           
-          # Descarga directa apuntando a la rama main y master de repositorios estables
-          curl -sL https://raw.githubusercontent.com/notnoop/wtk-2.5.2/main/wtklib/kenv.zip -o wtk/wtklib/kenv.zip || \
-          curl -sL https://raw.githubusercontent.com/notnoop/wtk-2.5.2/master/wtklib/kenv.zip -o wtk/wtklib/kenv.zip || \
-          curl -sL https://raw.githubusercontent.com/shunjikonishi/wtk-2.5.2/main/wtklib/kenv.zip -o wtk/wtklib/kenv.zip
+          # Descargar un repositorio completo que contenga el WTK y las librerías necesarias
+          curl -sL https://github.com/gtalent/wtk-2.5.2-linux/archive/refs/heads/master.zip -o wtk_repo.zip || \
+          curl -sL https://github.com/notnoop/wtk-2.5.2/archive/refs/heads/master.zip -o wtk_repo.zip
           
-          # Verificar que el archivo pese más de 10 KB (evita páginas de error HTML de 404)
-          FILESIZE=$(wc -c <"wtk/wtklib/kenv.zip")
-          if [ "$FILESIZE" -lt 10000 ]; then
-            echo "Error: El archivo descargado está corrupto o es una página de error (Tamaño: $FILESIZE bytes)."
-            exit 1
-          else
-            echo "¡kenv.zip descargado correctamente ($FILESIZE bytes)!"
+          # Descomprimir el repositorio descargado
+          if [ -f "wtk_repo.zip" ]; then
+            unzip -q wtk_repo.zip
+            find . -name "kenv.zip" -exec cp {} wtk/wtklib/ \;
           fi
+          
+          # Verificación estricta del tamaño del archivo kenv.zip
+          if [ -f "wtk/wtklib/kenv.zip" ]; then
+            FILESIZE=$(wc -c <"wtk/wtklib/kenv.zip")
+            echo "Tamaño de kenv.zip: $FILESIZE bytes"
+            if [ "$FILESIZE" -lt 10000 ]; then
+              echo "Error: El archivo kenv.zip extraído es demasiado pequeño o inválido."
+              exit 1
+            fi
+          else
+            echo "Error crítico: No se pudo localizar kenv.zip."
+            exit 1
+          fi
+          echo "¡Librería kenv.zip lista y verificada!"
 
       - name: Compilar y empaquetar MIDlet (.jar)
         run: |
